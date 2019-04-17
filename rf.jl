@@ -16,10 +16,8 @@ mutable struct Tree
     order_cols::Array{Int64}
     Tree() = new()
 end
-predictions = Array{Tuple{String,String,Bool}}(undef,0)
-trees       = Array{Tree}(undef, 0)
 
-function PredictTrees(Test)
+function PredictTrees(Test, predictions, trees)
     
     for row in eachrow(Test)
         predictions_in_place = Dict(y => 0 for y in unique(Test[:,size(Test,2)]))
@@ -44,10 +42,12 @@ function PredictTrees(Test)
                 end
             end
         end
+        @show predictions_in_place
+
         y_value = row[:][size(Test,2)]
         max_variety = GetMaxOccur(predictions_in_place)
         result_node = (y_value, max_variety, max_variety == y_value)
-        
+        @show result_node
         push!(predictions, result_node)
     end               
     
@@ -89,26 +89,33 @@ function BuildTreeRandomForest(S, NodeFrom, Nodes, Position = 0, GiniImpurity = 
     push!(Nodes, node)    
 end
 
-function TrainRandomForest(train, number_trees, number_max_features)
+function TrainRandomForest(train, number_trees, number_max_features,trees)
+    # Number of rows and columns
+    N, M          = size(train)
+    # Var local for bootstraping dataSet
+    S_train_local = train
+    # Features to be selected
+    random_feat   = [i for i in 1:M]
+
     for i in 1:number_trees
-        N, M = size(train)
         
-        # Build a sample from train dataset
-        S_train_local = train[rand(1:N, N),:]
+        # Build a sample from train dataset        
+        for i in 1:N
+            S_train_local[i,:] = train[rand(1:N,1),:]
+        end 
 
         # Get a subset of sample with number of features
-        random_feat = [i for i in 1:M]
         if number_max_features < M
             random_feat = RandomFeature(S_train_local, number_max_features)            
         end 
         S_in_place  = S_train_local[:,random_feat]       
-
+        
         # Build the tree
         nodes       = Array{Node}(undef,0)
         node_root   = Node(S_in_place, 0, 0.,false, "None", 0., 0)
 
         # Start building and trainig the tree
-        BuildTreeRandomForest(train, node_root, nodes, 0, 1.0)
+        BuildTreeRandomForest(S_in_place, node_root, nodes, 0, 1.0)
         
         tree = Tree()
         tree.nodes = nodes
@@ -117,8 +124,4 @@ function TrainRandomForest(train, number_trees, number_max_features)
         
         push!(trees, tree)
     end
-end
-
-function TestRandomForest(test)
-    PredictTrees(test)
 end

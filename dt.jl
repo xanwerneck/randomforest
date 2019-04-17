@@ -16,10 +16,6 @@ mutable struct Node
     # Change the construct of struct
     Node(data,index,gini,isLeaf,way,mean,feature) = new(data,index,gini,isLeaf,way,mean,feature)
 end
-# Empty array of Nodes
-nodes       = Array{Node}(undef,0)
-# Empty array of predictions
-predictions = Array{Tuple{String,String,Bool}}(undef,0)
 
 function GImpurity(S, Y_uniques, Feature, S_imp, SizeDS)
     #Number of columns
@@ -80,7 +76,7 @@ function GetMin(ItemArray, Index)
     return ret_min
 end
 
-function BuildTree(S, NodeFrom, Position = 0, GiniImpurity = 1.0, Way = "Root")
+function BuildTree(S, NodeFrom, Nodes, Position = 0, GiniImpurity = 1.0, Way = "Root")
     # Get the node
     features_impurity = Array{Tuple{Integer,Float64,Float64}}(undef,0)
     for j in range(1,length=size(S,2)-1)
@@ -92,9 +88,9 @@ function BuildTree(S, NodeFrom, Position = 0, GiniImpurity = 1.0, Way = "Root")
     if (size( unique(S[:,size(S,2)]) , 1 ) > 1) && (size( unique( S[:,node_min[1]] ), 1) > 1)
         node = Node(S, Position, node_min[3], false, Way, node_min[2], node_min[1])
         # Go to left - true
-        BuildTree(filter(x -> x[:][node_min[1]] <= node_min[2],S), node, Position + 1, 1., "True")
+        BuildTree(filter(x -> x[:][node_min[1]] <= node_min[2],S), node, Nodes, Position + 1, 1., "True")
         # Go to right - false
-        BuildTree(filter(x -> x[:][node_min[1]] > node_min[2],S), node, Position + 1, 1., "False")
+        BuildTree(filter(x -> x[:][node_min[1]] > node_min[2],S), node, Nodes, Position + 1, 1., "False")
     else
         node = Node(S, Position, node_min[3], true, Way, node_min[2], node_min[1])
     end
@@ -105,7 +101,7 @@ function BuildTree(S, NodeFrom, Position = 0, GiniImpurity = 1.0, Way = "Root")
         NodeFrom.nodeFalse = node
     end
 
-    push!(nodes, node)    
+    push!(Nodes, node)    
 end
 
 function TrainTest(S, test_size = 0.25)
@@ -114,16 +110,16 @@ function TrainTest(S, test_size = 0.25)
     return train, test
 end
 
-function Accuracy()
+function Accuracy(predictions)
     perc_right_answer = size(filter(x -> x[:][3], predictions), 1) / size(predictions,1)
     return perc_right_answer * 100
 end
 
-function Predict(Test)
+function Predict(Test, predictions, nodes)
     Size_test   = size(Test,1)
     
     for row in eachrow(Test)
-        node = GetRoot()
+        node = GetRoot(nodes)
         while !node.isLeaf
             if row[node.feature] <= node.mean
                 # True
@@ -140,7 +136,7 @@ function Predict(Test)
     end
 end
 
-function GetRoot()
+function GetRoot(nodes)
     for node in nodes
         if node.way == "Root"
             return node
@@ -148,14 +144,9 @@ function GetRoot()
     end
 end
 
-function TrainTree(train)
+function TrainTree(train, nodes)
     # Create a pseudo root node
     node_root   = Node(train, 0, 0.,false, "None", 0., 0)
     # Start creating the tree
-    BuildTree(train, node_root, 0, 1.0)
-end
-
-function TestTree(test)
-    # Make predictions based on tree
-    Predict(test)
+    BuildTree(train, node_root, nodes, 0, 1.0)
 end

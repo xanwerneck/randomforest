@@ -2,6 +2,12 @@
 include("rf.jl")
 
 function main_rf(file)
+    # Empty array of trees
+    trees = Array{Tree}(undef, 0)
+
+    # Empty array of predictions
+    predictions = Array{Tuple{String,String,Bool}}(undef,0)
+
     # Read dataset file
     S_dataset   = CSV.read(file)
     # Build 2 dataframe - train with 75% and test with 25%
@@ -11,19 +17,25 @@ function main_rf(file)
     # Input: train : dataset of train
     # number_trees : number of trees
     # number_columns : number of random columns selected
-    TrainRandomForest(train,100,4)
+    TrainRandomForest(train,10,size(train,2),trees)
     
     # Predict the test dataset
-    TestRandomForest(test)
+    PredictTrees(test, predictions,trees)
 
-    # Get accuraty
-    accu = Accuracy()
+    # Get accuracy
+    accu = Accuracy(predictions)
     @show accu   
 end
 
 main_rf(string("data/", ARGS[1]))
 
 function main_dt(file)
+    # Empty array of Nodes
+    nodes       = Array{Node}(undef,0)
+
+    # Empty array of predictions
+    predictions = Array{Tuple{String,String,Bool}}(undef,0)
+
     # Read dataset file
     S_dataset   = CSV.read(file)
     # Build 2 dataframe - train with 75% and test with 25%
@@ -31,13 +43,13 @@ function main_dt(file)
 
     # Train and build a single tree
     # Input: train : dataset of train
-    TrainTree(train)
+    TrainTree(train, nodes)
     
     # Predict the test dataset
-    TestTree(test)
+    Predict(test, predictions, nodes)
 
-    # Get accuraty
-    accu = Accuracy()
+    # Get accuracy
+    accu = Accuracy(predictions)
     @show accu   
 end
 
