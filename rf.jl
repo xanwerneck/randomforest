@@ -42,12 +42,11 @@ function PredictTrees(Test, predictions, trees)
                 end
             end
         end
-        @show predictions_in_place
 
         y_value = row[:][size(Test,2)]
         max_variety = GetMaxOccur(predictions_in_place)
         result_node = (y_value, max_variety, max_variety == y_value)
-        @show result_node
+        
         push!(predictions, result_node)
     end               
     
@@ -89,17 +88,17 @@ function BuildTreeRandomForest(S, NodeFrom, Nodes, Position = 0, GiniImpurity = 
     push!(Nodes, node)    
 end
 
-function TrainRandomForest(train, number_trees, number_max_features,trees)
+function TrainRandomForest(train, number_trees, number_max_features, trees)
     # Number of rows and columns
     N, M          = size(train)
     # Var local for bootstraping dataSet
     S_train_local = train
     # Features to be selected
     random_feat   = [i for i in 1:M]
-
+    
     for i in 1:number_trees
         
-        # Build a sample from train dataset        
+        # Build a sample from train dataset with replacement        
         for i in 1:N
             S_train_local[i,:] = train[rand(1:N,1),:]
         end 
